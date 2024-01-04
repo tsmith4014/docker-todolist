@@ -1,84 +1,112 @@
-Understood. If you cannot modify the Python application and need to work purely from a DevOps perspective, let's focus on creating a Docker and deployment setup that works with your existing application code. We'll follow the conventions and format from your provided Dockerfile.
+# Todo List Application
 
-### Dockerfile for `todolist-flask`
+This application is a simple Todo list implemented using a Flask backend, MariaDB for data storage, and Nginx as a reverse proxy and static server for the frontend.
 
-Based on your conventions, the Dockerfile for the `todolist-flask` application will look like this:
+## Components
 
-```Dockerfile
-FROM python:alpine
+- **Flask App**: Python application providing the API.
+- **MariaDB**: Database server for storing Todo items.
+- **Nginx**: Web server for serving static content and proxying API requests.
 
-# Environment variables for database configuration
-ENV DB_USER=chandra
-ENV DB_PASSWORD=Chandra@123
-ENV DB_HOST=todo-database-server
-ENV DB_PORT=3306
-ENV DB_DATABASE=todo_db
+## Setup and Running with Docker
 
-# Install dependencies for building Python packages
-RUN apk update && \
-    apk add --no-cache build-base libffi-dev openssl-dev
+### Building and Running Containers
 
-# Copy the application files to the container
-COPY . /app
+1. **MariaDB Container**
 
-# Set the working directory
-WORKDIR /app
+   Start the MariaDB container:
 
-# Install Python dependencies
-RUN pip install -r requirements.txt
+   ```bash
+   docker run -d --name todolist-db-server \
+     --network todolist-network \
+     -e MYSQL_ROOT_PASSWORD=Chandra@123 \
+     -e MYSQL_DATABASE=todo_db \
+     -p 3306:3306 \
+     mariadb:10.5
+   ```
 
-# Expose the port the app runs on
-EXPOSE 80
+2. **Flask App Container**
 
-# Command to run the application
-CMD python todo.py
+   Build and run the Flask app container:
+
+   ```bash
+   docker build -t todo-flask-app-image -f Dockerfile-flask .
+   docker run -d -p 5001:80 --network todolist-network \
+     -e MYSQL_DATABASE_HOST=todolist-db-server \
+     -e MYSQL_DATABASE_USER=root \
+     -e MYSQL_DATABASE_PASSWORD=Chandra@123 \
+     -e MYSQL_DATABASE_DB=todo_db \
+     -e MYSQL_DATABASE_PORT=3306 \
+     --name todolist-flask-container todo-flask-app-image
+   ```
+
+3. **Nginx Container**
+
+   Build and run the Nginx container:
+
+   ```bash
+   docker build -t my-nginx -f Dockerfile-nginx .
+   docker run -d -p 8080:80 --network todolist-network --name my-nginx-container my-nginx
+   ```
+
+### Dockerfiles
+
+1. **Dockerfile for Flask App (`Dockerfile-flask`)**
+
+   ```Dockerfile
+   FROM python:alpine
+
+   ENV MYSQL_DATABASE_HOST=todolist-db-server
+   ENV MYSQL_DATABASE_USER=root
+   ENV MYSQL_DATABASE_PASSWORD=Chandra@123
+   ENV MYSQL_DATABASE_DB=todo_db
+   ENV MYSQL_DATABASE_PORT=3306
+
+   RUN apk update && \
+       apk add --no-cache build-base libffi-dev openssl-dev
+   COPY . /app
+   WORKDIR /app
+   RUN pip install -r requirements.txt
+   EXPOSE 80
+   CMD python ./todo.py
+   ```
+
+2. **Dockerfile for Nginx (`Dockerfile-nginx`)**
+
+   ```Dockerfile
+   FROM nginx:alpine
+   COPY ./index.html /usr/share/nginx/html/index.html
+   COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+   ```
+
+### Nginx Configuration (`nginx.conf`)
+
+```nginx
+server {
+    listen 80;
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    }
+
+    location /posts {
+        proxy_pass http://todolist-flask-container:5001;
+    }
+}
 ```
 
-### Docker Compose Setup
+### Frontend (`index.html`)
 
-We'll use Docker Compose to manage both the Flask app and the MySQL database. Here's the `docker-compose.yml`:
+Make sure your frontend makes API requests to the right endpoint. The JavaScript in `index.html` should point to the Flask API URL.
 
-```yaml
-version: '3.8'
-services:
-  web:
-    build: .
-    ports:
-      - "5000:80"
-    environment:
-      MYSQL_DATABASE_HOST: db
-      MYSQL_DATABASE_USER: root
-      MYSQL_DATABASE_PASSWORD: example
-    depends_on:
-      - db
-  db:
-    image: mysql:5.7
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: todo_db
-    ports:
-      - "3306:3306"
+```html
+<script>
+  const API_URL = "http://localhost:8080/posts";
+  // Rest of your frontend JavaScript code...
+</script>
 ```
 
-In this setup:
+## Conclusion
 
-- The `web` service builds your Flask application using the Dockerfile.
-- The `db` service runs a MySQL database.
-- Environment variables are set for both services to facilitate communication.
-- Port `5000` of the host is mapped to port `80` of the `web` container, and MySQL's default port `3306` is exposed for database access.
-
-### Building and Running with Docker Compose
-
-To build and start your services, you would run:
-
-```bash
-docker-compose up --build
-```
-
-### Deployment Considerations
-
-- For deployment, manage sensitive information like passwords and environment variables securely, possibly using secret management tools of the cloud provider or Kubernetes secrets.
-- Ensure to follow security best practices, especially in production environments.
-- Adjust configurations based on the target environment's requirements.
-
-This approach should enable you to deploy the `todolist-flask` application without any changes to the application code, adhering to the DevOps responsibilities.
+This setup allows you to run a full-stack application with separate containers for the database, backend, and frontend. Ensure all containers are on the same Docker network for seamless communication.

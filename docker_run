@@ -1,0 +1,17 @@
+docker run -d --name todolist-db-server \
+  --network todolist-network \
+  -e MYSQL_ROOT_PASSWORD=Chandra@123 \
+  -e MYSQL_DATABASE=todo_db \
+  -p 3306:3306 \
+  mariadb:10.5
+
+
+##################db above and flask below#####################
+
+ docker run -d -p 5001:80 --network todolist-network -e MYSQL_DATABASE_HOST=todolist-db-server -e MYSQL_DATABASE_USER=root -e MYSQL_DATABASE_PASSWORD=Chandra@123 -e MYSQL_DATABASE_DB=todo_db -e MYSQL_DATABASE_PORT=3306 --name todolist-flask-container todo-flask-app-image
+
+
+#####################nginx######################################
+
+docker build -t my-nginx -f Dockerfile-nginx .
+docker run -d -p 8080:80 --network todolist-network --name my-nginx-container my-nginx
