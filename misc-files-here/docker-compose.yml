@@ -1,3 +1,5 @@
+#this is not working yet, only works building the docker images and containers manually while passing environment variables in the command line.
+
 version: '3.8'
 services:
   db:

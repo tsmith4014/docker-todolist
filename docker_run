@@ -1,3 +1,4 @@
+#####these are the manual commands to run build the images and run the docker containers for the 3 tier stack - nginx serving the frontend .html, mariadb, and the flask app #####
 docker run -d --name todolist-db-server \
   --network todolist-network \
   -e MYSQL_ROOT_PASSWORD=Chandra@123 \
@@ -7,7 +8,7 @@ docker run -d --name todolist-db-server \
 
 
 ##################db above and flask below#####################
-
+ docker build -t todo-flask-app-image .
  docker run -d -p 5001:80 --network todolist-network -e MYSQL_DATABASE_HOST=todolist-db-server -e MYSQL_DATABASE_USER=root -e MYSQL_DATABASE_PASSWORD=Chandra@123 -e MYSQL_DATABASE_DB=todo_db -e MYSQL_DATABASE_PORT=3306 --name todolist-flask-container todo-flask-app-image
 
 

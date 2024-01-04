@@ -98,11 +98,11 @@ server {
 
 ### Frontend (`index.html`)
 
-Make sure your frontend makes API requests to the right endpoint. The JavaScript in `index.html` should point to the Flask API URL.
+Make sure your frontend makes API requests to the right endpoint. The JavaScript in `index.html` should point to the Flask API URL. Flask API URL this needs to match the port flask app docker container is running on. localhost is the docker container itself and port 5001 is the port the flask app is running on. this is specified in the docker run command for flask app container.
 
 ```html
 <script>
-  const API_URL = "http://localhost:8080/posts";
+  const API_URL = "http://localhost:5001";
   // Rest of your frontend JavaScript code...
 </script>
 ```
